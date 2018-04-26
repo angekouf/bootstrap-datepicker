@@ -1533,7 +1533,8 @@
         endDate: options.endDate
       };
 
-    if (!l) return;
+    if (!l)
+      return;
 
     // Check if "de-DE" style date is available, if not language should
     // fallback to 2 letter code eg "de"
@@ -1631,7 +1632,8 @@
       next_date = new Date(new_date);
       next_date.setUTCDate(next_date.getUTCDate() - min_allowed_range);
       for (j = i - 1; j >= 0; j--) {
-        if (prev_val = this.pickers[j].getUTCDate()) {
+        prev_val = this.pickers[j].getUTCDate();
+        if (prev_val) {
           if (next_date < prev_val)
             this.pickers[j].setUTCDate(next_date);
           else
@@ -1647,7 +1649,8 @@
       next_date = new Date(new_date);
       next_date.setUTCDate(next_date.getUTCDate() + min_allowed_range);
       for (j = i + 1; j < l; j++) {
-        if (prev_val = this.pickers[j].getUTCDate()) {
+        prev_val = this.pickers[j].getUTCDate();
+        if (prev_val) {
           if (next_date > prev_val)
             this.pickers[j].setUTCDate(next_date);
           else
