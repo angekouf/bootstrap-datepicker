@@ -347,6 +347,15 @@ Set a maximum limit for the view mode.  Accepts: 0 or "days" or "month", 1 or "m
 Gives the ability to pick only a day, a month, a year or a decade.  The day is set to the 1st for "months", the month is set to January for "years", the year is set to the first year from the decade for "decades", and the year is set to the first from the millennium for "centuries".
 
 
+minAllowedRange
+-----------
+
+Integer.  Default: 0
+
+Only effective in a range picker. Sets a minimum number of selected days limit for the date range.
+For example if 2 is given,the dates will be changed accordingly so that the range is at least 2 days long.
+
+
 minViewMode
 -----------
 

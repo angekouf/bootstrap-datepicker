@@ -1522,8 +1522,59 @@
 		this.keepEmptyValues = options.keepEmptyValues;
 		delete options.keepEmptyValues;
 
-		datepickerPlugin.call($(this.inputs), options)
-			.on('changeDate', $.proxy(this.dateUpdated, this));
+    this.minAllowedRange = Math.abs(parseInt(options.minAllowedRange, 10));
+    delete options.minAllowedRange;
+
+    var format = DPGlobal.parseFormat(options.format),
+      lang = options.language,
+      i, l = this.inputs.length,
+      o = {
+        startDate: options.startDate,
+        endDate: options.endDate
+      };
+
+    if (!l) return;
+
+    // Check if "de-DE" style date is available, if not language should
+    // fallback to 2 letter code eg "de"
+    if (!dates[lang]) {
+      lang = lang.split('-')[0];
+      if (!dates[lang])
+        lang = defaults.language;
+    }
+
+    if (o.startDate !== -Infinity) {
+      if (!o.startDate) o.startDate = -Infinity;
+      else {
+        this.startDate = DPGlobal.parseDate(o.startDate, format, lang, options.assumeNearbyYear);
+        o.startDate = new Date(this.startDate);
+      }
+    }
+    if (o.endDate !== Infinity) {
+      if (!o.endDate) o.endDate = Infinity;
+      else {
+        this.endDate = DPGlobal.parseDate(o.endDate, format, lang, options.assumeNearbyYear);
+        o.endDate = new Date(this.endDate);
+        o.endDate.setUTCDate(o.endDate.getUTCDate() - (l - 1) * this.minAllowedRange);
+      }
+    }
+
+    if (this.minAllowedRange > 0 && (o.startDate !== -Infinity || o.endDate !== Infinity)) {
+      for (i = 0; i < l; i++) {
+        datepickerPlugin.call($(this.inputs[i]), $.extend({}, options, o))
+          .on('changeDate', $.proxy(this.dateUpdated, this));
+
+        if (o.startDate !== -Infinity) {
+          o.startDate.setUTCDate(o.startDate.getUTCDate() + this.minAllowedRange);
+        }
+        if (o.endDate !== Infinity) {
+          o.endDate.setUTCDate(o.endDate.getUTCDate() + this.minAllowedRange);
+        }
+      }
+    } else {
+      datepickerPlugin.call($(this.inputs), options)
+        .on('changeDate', $.proxy(this.dateUpdated, this));
+    }
 
 		this.pickers = $.map(this.inputs, function(i){
 			return $.data(i, 'datepicker');
@@ -1564,31 +1615,51 @@
 				return;
 			}
 
-			var new_date = dp.getUTCDate(),
+      var new_date = dp.getUTCDate(),
+        min_allowed_range = this.minAllowedRange,
+        next_date, prev_val, j,
 				keep_empty_values = this.keepEmptyValues,
 				i = $.inArray(e.target, this.inputs),
-				j = i - 1,
-				k = i + 1,
-				l = this.inputs.length;
-			if (i === -1)
-				return;
+        l = this.inputs.length;
 
-			$.each(this.pickers, function(i, p){
-				if (!p.getUTCDate() && (p === dp || !keep_empty_values))
-					p.setUTCDate(new_date);
-			});
+      if (i === -1 || !new_date)
+        return;
 
-			if (new_date < this.dates[j]){
-				// Date being moved earlier/left
-				while (j >= 0 && new_date < this.dates[j]){
-					this.pickers[j--].setUTCDate(new_date);
-				}
-			} else if (new_date > this.dates[k]){
-				// Date being moved later/right
-				while (k < l && new_date > this.dates[k]){
-					this.pickers[k++].setUTCDate(new_date);
-				}
-			}
+      if (!this.pickers[i].getUTCDate() && this.pickers[i] === dp)
+        this.pickers[i].setUTCDate(new_date);
+
+      next_date = new Date(new_date);
+      next_date.setUTCDate(next_date.getUTCDate() - min_allowed_range);
+      for (j = i - 1; j >= 0; j--) {
+        if (prev_val = this.pickers[j].getUTCDate()) {
+          if (next_date < prev_val)
+            this.pickers[j].setUTCDate(next_date);
+          else
+            next_date = prev_val;
+
+          next_date.setUTCDate(next_date.getUTCDate() - min_allowed_range);
+        } else if (!keep_empty_values) {
+          this.pickers[j].setUTCDate(next_date);
+          next_date.setUTCDate(next_date.getUTCDate() - min_allowed_range);
+        }
+      }
+
+      next_date = new Date(new_date);
+      next_date.setUTCDate(next_date.getUTCDate() + min_allowed_range);
+      for (j = i + 1; j < l; j++) {
+        if (prev_val = this.pickers[j].getUTCDate()) {
+          if (next_date > prev_val)
+            this.pickers[j].setUTCDate(next_date);
+          else
+            next_date = prev_val;
+
+          next_date.setUTCDate(next_date.getUTCDate() + min_allowed_range);
+        } else if (!keep_empty_values) {
+          this.pickers[j].setUTCDate(next_date);
+          next_date.setUTCDate(next_date.getUTCDate() + min_allowed_range);
+        }
+      }
+
 			this.updateDates();
 
 			delete this.updating;
@@ -1701,7 +1772,8 @@
 		format: 'mm/dd/yyyy',
 		keepEmptyValues: false,
 		keyboardNavigation: true,
-		language: 'en',
+    language: 'en',
+    minAllowedRange: 0,
 		minViewMode: 0,
 		maxViewMode: 4,
 		multidate: false,
